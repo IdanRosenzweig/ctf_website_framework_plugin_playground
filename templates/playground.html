@@ -3,70 +3,59 @@
 {% block stylesheets %}
   {{ super() }}
   <style>
-    /* Status colours are fixed, not themed: each one ships with an icon and a
-       word, so the state never rides on colour alone. */
-    .pg-status {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.35rem 0.85rem;
-      border-radius: 999px;
-      font-weight: 600;
-      font-size: 0.9rem;
-      border: 1px solid transparent;
-    }
-    .pg-status .pg-dot {
-      width: 0.6rem;
-      height: 0.6rem;
-      border-radius: 50%;
-      background: currentColor;
-      flex: none;
-    }
-    .pg-status[data-state="live"] { color: #0ca30c; border-color: rgba(12, 163, 12, 0.35); background: rgba(12, 163, 12, 0.08); }
-    .pg-status[data-state="live"] .pg-dot { animation: pg-pulse 2s ease-in-out infinite; }
-    .pg-status[data-state="stale"] { color: #b57900; border-color: rgba(250, 178, 25, 0.5); background: rgba(250, 178, 25, 0.12); }
-    .pg-status[data-state="unavailable"] { color: #d03b3b; border-color: rgba(208, 59, 59, 0.35); background: rgba(208, 59, 59, 0.08); }
-    [data-bs-theme="dark"] .pg-status[data-state="stale"] { color: #fab219; }
-    @keyframes pg-pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.45; transform: scale(0.8); }
-    }
-
-    .pg-tile {
+    .pg-card {
       height: 100%;
       border-radius: 1rem;
       padding: 1.5rem 1.75rem;
       background: var(--light-card, #fff);
       border: 1px solid var(--light-border, rgba(0, 0, 0, 0.08));
     }
-    [data-bs-theme="dark"] .pg-tile {
+    [data-bs-theme="dark"] .pg-card {
       background: var(--dark-card, #1e2530);
       border-color: var(--dark-border, rgba(255, 255, 255, 0.1));
     }
-    .pg-tile .pg-label {
-      font-size: 0.9rem;
+    .pg-card .pg-icon {
+      font-size: 1.35rem;
+      color: var(--wmctf-primary, #20c997);
+      margin-bottom: 0.75rem;
+    }
+    .pg-card h3 {
+      font-size: 1.05rem;
       font-weight: 600;
-      letter-spacing: 0.02em;
-      opacity: 0.7;
       margin-bottom: 0.5rem;
     }
-    .pg-tile .pg-value {
-      font-weight: 600;
-      font-size: 2.5rem;
-      line-height: 1.1;
-      transition: opacity 0.2s ease;
+    .pg-card p {
+      font-size: 0.95rem;
+      opacity: 0.75;
+      margin-bottom: 0;
     }
-    .pg-tile.pg-hero .pg-value {
-      font-size: 3.5rem;
+
+    /* The connect command: a terminal line, readable in either theme. */
+    .pg-command {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      border-radius: 0.75rem;
+      padding: 1rem 1.25rem;
+      background: #101720;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      overflow-x: auto;
+    }
+    .pg-command code {
+      color: #e6edf3;
+      font-size: 1.05rem;
+      white-space: nowrap;
+      background: none;
+      padding: 0;
+    }
+    .pg-command .pg-prompt {
       color: var(--wmctf-primary, #20c997);
+      user-select: none;
     }
-    .pg-tile .pg-hint {
-      font-size: 0.85rem;
-      opacity: 0.6;
-      margin-top: 0.5rem;
-    }
-    .pg-loading .pg-value { opacity: 0.35; }
-    .pg-window-picker .btn { font-size: 0.85rem; }
+    .pg-copy { flex: none; margin-left: auto; }
+
+    .pg-rules li { margin-bottom: 0.4rem; }
+    .pg-rules li:last-child { margin-bottom: 0; }
   </style>
 {% endblock %}
 
@@ -77,75 +66,101 @@
       <i class="fas fa-terminal text-primary me-3"></i>
       Playground
     </h1>
-    <p class="lead mb-4 slide-up" style="animation-delay: 0.1s;">
-      Who is on the attack playground right now. Every ssh session is one guest, and the numbers follow the guests as they come and go.
+    <p class="lead mb-0 slide-up" style="animation-delay: 0.1s;">
+      The attack playground is a machine to work from. Ssh into it and you get a
+      throwaway Linux container of your own, on a network that reaches the
+      exercise endpoints and nothing else &mdash; somewhere to run your tools
+      without setting anything up and without touching your own machine.
     </p>
   </div>
 </div>
 
-<div class="container mb-5"
-     id="playground-stats"
-     data-api="{{ url_for('playground_stats.playground_stats_api') }}"
-     data-window="{{ window }}"
-     data-refresh="{{ refresh }}">
+<div class="container mb-5">
 
-  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-    <div class="d-flex align-items-center gap-3 flex-wrap">
-      {% set state = "unavailable" if stats is none else ("live" if stats.collector and stats.collector.connected else "stale") %}
-      <span class="pg-status" id="pg-status" data-state="{{ state }}" role="status">
-        <span class="pg-dot" aria-hidden="true"></span>
-        <i class="fas" id="pg-status-icon" aria-hidden="true"></i>
-        <span id="pg-status-text"></span>
-      </span>
-      <small class="text-muted" id="pg-updated"></small>
-    </div>
-
-    <div class="btn-group pg-window-picker" role="group" aria-label="Window">
-      {% for option in windows %}
-        <button type="button"
-                class="btn btn-sm {{ 'btn-primary' if option.window == window else 'btn-outline-secondary' }}"
-                data-window="{{ option.window }}"
-                data-label="{{ option.label }}">
-          {{ option.window }}
-        </button>
-      {% endfor %}
-    </div>
+  <h2 class="h4 fw-bold mb-3">Connecting</h2>
+  <div class="pg-command mb-3">
+    <span class="pg-prompt" aria-hidden="true">$</span>
+    <code>ssh {{ ssh_user }}@{{ ssh_host }} -p {{ ssh_port }}</code>
+    <button type="button" class="btn btn-sm btn-outline-light pg-copy" id="pg-copy"
+            data-command="ssh {{ ssh_user }}@{{ ssh_host }} -p {{ ssh_port }}">
+      <i class="fas fa-copy me-1" aria-hidden="true"></i><span id="pg-copy-text">Copy</span>
+    </button>
   </div>
+  <p class="text-muted mb-4">
+    Any password will do, and any username &mdash; the playground lets everyone
+    in, because there is nothing behind the door to protect. You land in a shell
+    straight away. Leave the shell, by <code>exit</code> or by closing the
+    window, and your container is gone; ssh in again for a fresh one.
+  </p>
 
-  {% set selected = (windows | selectattr("window", "equalto", window) | first) %}
-  <div class="row g-4">
+  <div class="row g-4 mb-5">
     <div class="col-md-4">
-      <div class="pg-tile pg-hero slide-up">
-        <div class="pg-label">Connected now</div>
-        <div class="pg-value" id="pg-current">{{ stats.currently_connected if stats else "–" }}</div>
-        <div class="pg-hint">Open ssh sessions at this moment</div>
+      <div class="pg-card slide-up">
+        <div class="pg-icon"><i class="fas fa-box-open" aria-hidden="true"></i></div>
+        <h3>A container each</h3>
+        <p>
+          Every session gets its own Ubuntu container, with the usual tooling
+          already in it &mdash; gcc, python, git, curl, wget, netcat, ping,
+          nslookup and dig. Nobody else is in yours, and you are in nobody
+          else's.
+        </p>
       </div>
     </div>
     <div class="col-md-4">
-      <div class="pg-tile slide-up" style="animation-delay: 0.05s;">
-        <div class="pg-label">Connected in the last <span id="pg-window-label">{{ selected.label if selected else window }}</span></div>
-        <div class="pg-value" id="pg-window">{{ stats.connected_in_window if stats else "–" }}</div>
-        <div class="pg-hint">Sessions open at any moment of the window</div>
+      <div class="pg-card slide-up" style="animation-delay: 0.05s;">
+        <div class="pg-icon"><i class="fas fa-eraser" aria-hidden="true"></i></div>
+        <h3>Nothing persists</h3>
+        <p>
+          The filesystem is scratch space that lives in memory and disappears
+          with the session. Keep anything you want to keep somewhere else, and
+          break anything you like &mdash; the next login starts clean.
+        </p>
       </div>
     </div>
     <div class="col-md-4">
-      <div class="pg-tile slide-up" style="animation-delay: 0.1s;">
-        <div class="pg-label">Ever connected</div>
-        <div class="pg-value" id="pg-ever">{{ stats.ever_connected if stats else "–" }}</div>
-        <div class="pg-hint">Every session since counting began</div>
+      <div class="pg-card slide-up" style="animation-delay: 0.1s;">
+        <div class="pg-icon"><i class="fas fa-network-wired" aria-hidden="true"></i></div>
+        <h3>A closed network</h3>
+        <p>
+          From inside, <code>{{ gateway_host }}</code> is the exercise
+          endpoints. That is the whole of the network: no internet, no other
+          machines, and no route to anyone else's container.
+        </p>
       </div>
     </div>
   </div>
 
-  <div class="alert alert-warning mt-4 {{ '' if error else 'd-none' }}" id="pg-error" role="alert">
-    <i class="fas fa-exclamation-triangle me-2"></i>
-    <span id="pg-error-text">{{ error or "" }}</span>
-  </div>
+  <h2 class="h4 fw-bold mb-3">Worth knowing</h2>
+  <ul class="pg-rules mb-4">
+    <li>
+      There is no internet in there. Bring what you need with you &mdash; paste
+      a script in, or write it on the spot &mdash; rather than planning to
+      <code>pip install</code> or <code>apt-get</code> it.
+    </li>
+    <li>
+      A session is small on purpose: a modest memory and cpu budget, a read-only
+      system and no root. It is a place to run tools from, not a place to build
+      a distro or mine anything.
+    </li>
+    <li>
+      Sessions are capped, so if the playground turns you away it is full rather
+      than broken. Close a shell you are done with and try again shortly.
+    </li>
+    <li>
+      Attack the exercise endpoints, and nothing else. Everything outside them
+      is out of scope, and the network is arranged so that it stays that way.
+    </li>
+  </ul>
+
+  <p class="text-muted">
+    <i class="fas fa-book me-2" aria-hidden="true"></i>
+    How the playground is built and run is written up at
+    <a href="{{ docs_url }}" target="_blank" rel="noopener noreferrer">{{ docs_url }}</a>.
+  </p>
 </div>
 {% endblock %}
 
 {% block scripts %}
   {{ super() }}
-  <script id="playground-stats-initial" type="application/json">{{ stats | tojson if stats else 'null' }}</script>
-  <script src="{{ url_for('playground_stats.static', filename='playground.js') }}"></script>
+  <script src="{{ url_for('playground.static', filename='playground.js') }}"></script>
 {% endblock %}
