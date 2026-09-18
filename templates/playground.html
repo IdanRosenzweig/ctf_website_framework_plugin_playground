@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block stylesheets %}
+  {{ super() }}
+  <style>
+    /* Status colours are fixed, not themed: each one ships with an icon and a
+       word, so the state never rides on colour alone. */
+    .pg-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.85rem;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border: 1px solid transparent;
+    }
+    .pg-status .pg-dot {
+      width: 0.6rem;
+      height: 0.6rem;
+      border-radius: 50%;
+      background: currentColor;
+      flex: none;
+    }
+    .pg-status[data-state="live"] { color: #0ca30c; border-color: rgba(12, 163, 12, 0.35); background: rgba(12, 163, 12, 0.08); }
+    .pg-status[data-state="live"] .pg-dot { animation: pg-pulse 2s ease-in-out infinite; }
+    .pg-status[data-state="stale"] { color: #b57900; border-color: rgba(250, 178, 25, 0.5); background: rgba(250, 178, 25, 0.12); }
+    .pg-status[data-state="unavailable"] { color: #d03b3b; border-color: rgba(208, 59, 59, 0.35); background: rgba(208, 59, 59, 0.08); }
+    [data-bs-theme="dark"] .pg-status[data-state="stale"] { color: #fab219; }
+    @keyframes pg-pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.45; transform: scale(0.8); }
+    }
+
+    .pg-tile {
+      height: 100%;
+      border-radius: 1rem;
+      padding: 1.5rem 1.75rem;
+      background: var(--light-card, #fff);
+      border: 1px solid var(--light-border, rgba(0, 0, 0, 0.08));
+    }
+    [data-bs-theme="dark"] .pg-tile {
+      background: var(--dark-card, #1e2530);
+      border-color: var(--dark-border, rgba(255, 255, 255, 0.1));
+    }
+    .pg-tile .pg-label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      opacity: 0.7;
+      margin-bottom: 0.5rem;
+    }
+    .pg-tile .pg-value {
+      font-weight: 600;
+      font-size: 2.5rem;
+      line-height: 1.1;
+      transition: opacity 0.2s ease;
+    }
+    .pg-tile.pg-hero .pg-value {
+      font-size: 3.5rem;
+      color: var(--wmctf-primary, #20c997);
+    }
+    .pg-tile .pg-hint {
+      font-size: 0.85rem;
+      opacity: 0.6;
+      margin-top: 0.5rem;
+    }
+    .pg-loading .pg-value { opacity: 0.35; }
+    .pg-window-picker .btn { font-size: 0.85rem; }
+  </style>
+{% endblock %}
+
+{% block content %}
+<div class="jumbotron">
+  <div class="container">
+    <h1 class="display-4 fw-bold mb-3 slide-up">
+      <i class="fas fa-terminal text-primary me-3"></i>
+      Playground
+    </h1>
+    <p class="lead mb-4 slide-up" style="animation-delay: 0.1s;">
+      Who is on the attack playground right now. Every ssh session is one guest, and the numbers follow the guests as they come and go.
+    </p>
+  </div>
+</div>
+
+<div class="container mb-5"
+     id="playground-stats"
+     data-api="{{ url_for('playground_stats.playground_stats_api') }}"
+     data-window="{{ window }}"
+     data-refresh="{{ refresh }}">
+
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+      {% set state = "unavailable" if stats is none else ("live" if stats.collector and stats.collector.connected else "stale") %}
+      <span class="pg-status" id="pg-status" data-state="{{ state }}" role="status">
+        <span class="pg-dot" aria-hidden="true"></span>
+        <i class="fas" id="pg-status-icon" aria-hidden="true"></i>
+        <span id="pg-status-text"></span>
+      </span>
+      <small class="text-muted" id="pg-updated"></small>
+    </div>
+
+    <div class="btn-group pg-window-picker" role="group" aria-label="Window">
+      {% for option in windows %}
+        <button type="button"
+                class="btn btn-sm {{ 'btn-primary' if option.window == window else 'btn-outline-secondary' }}"
+                data-window="{{ option.window }}"
+                data-label="{{ option.label }}">
+          {{ option.window }}
+        </button>
+      {% endfor %}
+    </div>
+  </div>
+
+  {% set selected = (windows | selectattr("window", "equalto", window) | first) %}
+  <div class="row g-4">
+    <div class="col-md-4">
+      <div class="pg-tile pg-hero slide-up">
+        <div class="pg-label">Connected now</div>
+        <div class="pg-value" id="pg-current">{{ stats.currently_connected if stats else "–" }}</div>
+        <div class="pg-hint">Open ssh sessions at this moment</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="pg-tile slide-up" style="animation-delay: 0.05s;">
+        <div class="pg-label">Connected in the last <span id="pg-window-label">{{ selected.label if selected else window }}</span></div>
+        <div class="pg-value" id="pg-window">{{ stats.connected_in_window if stats else "–" }}</div>
+        <div class="pg-hint">Sessions open at any moment of the window</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="pg-tile slide-up" style="animation-delay: 0.1s;">
+        <div class="pg-label">Ever connected</div>
+        <div class="pg-value" id="pg-ever">{{ stats.ever_connected if stats else "–" }}</div>
+        <div class="pg-hint">Every session since counting began</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="alert alert-warning mt-4 {{ '' if error else 'd-none' }}" id="pg-error" role="alert">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    <span id="pg-error-text">{{ error or "" }}</span>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+  {{ super() }}
+  <script id="playground-stats-initial" type="application/json">{{ stats | tojson if stats else 'null' }}</script>
+  <script src="{{ url_for('playground_stats.static', filename='playground.js') }}"></script>
+{% endblock %}
