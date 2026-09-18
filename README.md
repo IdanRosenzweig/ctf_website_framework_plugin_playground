@@ -24,14 +24,21 @@ counts ssh sessions off docker's event stream.
 
 ## Setup
 
-Nothing, when the playground and CTFd run on the same machine with the ports
-the playground ships with: the stats server publishes on `127.0.0.1:2224`
-(`STATS_PORT` in the playground's `.env`) and that is where the plugin looks.
-Restart CTFd after installing, like any plugin.
+CTFd reads the numbers from `http://researchlabs:2224/stats` and hands them to
+the page itself, so visitors never talk to the playground host. The playground
+publishes its stats server on every address of its host on `STATS_PORT` from
+its `.env` (2224 as shipped), so CTFd reaches it over the network like anyone
+else would.
 
-The stats server listens on loopback only, so browsers cannot ask it
-themselves. CTFd fetches the numbers server side and hands them to the page,
-which also means the playground host is never exposed to visitors.
+CTFd runs in its own docker sandbox, where `127.0.0.1` is the CTFd container
+rather than the machine, which is why the plugin addresses the playground by
+name. When the playground runs on the same machine as CTFd, the `ctfd` service
+in `docker-compose.yml` maps `researchlabs` to the docker host with
+`extra_hosts`, and nothing else is needed. If the name already resolves (dns or
+`/etc/hosts`) that mapping can go, and if the playground runs on another host,
+set `PLAYGROUND_STATS_URL` instead.
+
+Restart CTFd after installing, like any plugin.
 
 ## Options
 

@@ -68,11 +68,14 @@ def describe_window(seconds):
 def config(app):
     """Load the plugin configuration into ``app.config``."""
 
-    # PLAYGROUND_STATS_URL is where the stats server answers. The playground
-    # publishes it on loopback only (STATS_PORT in its .env, 2224 as shipped),
-    # which is why CTFd fetches the numbers server side and hands them to the
-    # browser itself. A trailing "/stats" is optional.
-    url = str(envvar(app, "PLAYGROUND_STATS_URL", "http://127.0.0.1:2224")).rstrip("/")
+    # PLAYGROUND_STATS_URL is where the stats server answers: the playground host
+    # on STATS_PORT from its .env (2224 as shipped). CTFd runs in its own docker
+    # sandbox, where 127.0.0.1 is the CTFd container itself, so the default names
+    # the host and docker-compose.yml maps that name to the docker host. A
+    # trailing "/stats" is optional.
+    url = str(envvar(app, "PLAYGROUND_STATS_URL", "http://researchlabs:2224")).rstrip(
+        "/"
+    )
     if url.endswith("/stats"):
         url = url[: -len("/stats")]
     app.config["PLAYGROUND_STATS_URL"] = url
