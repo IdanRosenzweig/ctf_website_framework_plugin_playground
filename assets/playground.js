@@ -22,7 +22,7 @@
   }
 
   // The clipboard api is the good path, but it is absent on a page that is not
-  // served over https (a CTFd behind plain http) and it rejects where the
+  // served over https and it rejects where the
   // browser does not credit the click as a user gesture. Either way the
   // selection trick below still works, so it is the fallback rather than a
   // second best.

@@ -25,7 +25,7 @@ def load(app):
         __name__,
         template_folder="templates",
         static_folder="assets",
-        static_url_path="/plugins/ctfd_plugin_playground/assets",
+        static_url_path="/plugins/ctf_website_framework_plugin_playground/assets",
     )
 
     @playground_bp.route("/playground", methods=["GET"])
