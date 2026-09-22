@@ -1,0 +1,122 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="jumbotron">
+  <div class="container">
+    <h1>Playground</h1>
+    <p class="lead mb-0">
+      Configure the connection details shown to players on the playground page.
+    </p>
+  </div>
+</div>
+
+<div class="container">
+  {% if message %}
+    <div class="alert alert-success" role="alert">{{ message }}</div>
+  {% endif %}
+  {% if error %}
+    <div class="alert alert-danger" role="alert">{{ error }}</div>
+  {% endif %}
+
+  {% if "environment" in sources.values() %}
+    <div class="alert alert-info" role="alert">
+      Fields marked <strong>environment</strong> are controlled by environment
+      variables and cannot be changed here.
+    </div>
+  {% endif %}
+
+  <div class="row">
+    <div class="col-lg-8">
+      <form method="POST">
+        <input type="hidden" name="nonce" value="{{ Session.nonce }}">
+        <input type="hidden" name="action" value="save">
+
+        <div class="form-group">
+          <label for="PLAYGROUND_SSH_HOST">
+            <strong>SSH host</strong>
+            <span class="badge badge-secondary ml-1">{{ sources.ssh_host }}</span>
+          </label>
+          <input class="form-control" type="text" id="PLAYGROUND_SSH_HOST"
+                 name="PLAYGROUND_SSH_HOST" value="{{ settings.ssh_host }}"
+                 maxlength="255" required
+                 {% if sources.ssh_host == "environment" %}disabled{% endif %}>
+          <small class="form-text text-muted">
+            Public hostname or IP address players connect to.
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label for="PLAYGROUND_SSH_PORT">
+            <strong>SSH port</strong>
+            <span class="badge badge-secondary ml-1">{{ sources.ssh_port }}</span>
+          </label>
+          <input class="form-control" type="number" id="PLAYGROUND_SSH_PORT"
+                 name="PLAYGROUND_SSH_PORT" value="{{ settings.ssh_port }}"
+                 min="1" max="65535" required
+                 {% if sources.ssh_port == "environment" %}disabled{% endif %}>
+          <small class="form-text text-muted">
+            External port on which the playground accepts SSH connections.
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label for="PLAYGROUND_SSH_USER">
+            <strong>Suggested SSH username</strong>
+            <span class="badge badge-secondary ml-1">{{ sources.ssh_user }}</span>
+          </label>
+          <input class="form-control" type="text" id="PLAYGROUND_SSH_USER"
+                 name="PLAYGROUND_SSH_USER" value="{{ settings.ssh_user }}"
+                 maxlength="255" required
+                 {% if sources.ssh_user == "environment" %}disabled{% endif %}>
+          <small class="form-text text-muted">
+            Username used in the example command shown to players.
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label for="PLAYGROUND_GATEWAY_HOST">
+            <strong>Challenge gateway host</strong>
+            <span class="badge badge-secondary ml-1">{{ sources.gateway_host }}</span>
+          </label>
+          <input class="form-control" type="text" id="PLAYGROUND_GATEWAY_HOST"
+                 name="PLAYGROUND_GATEWAY_HOST" value="{{ settings.gateway_host }}"
+                 maxlength="255" required
+                 {% if sources.gateway_host == "environment" %}disabled{% endif %}>
+          <small class="form-text text-muted">
+            Hostname that resolves to the challenge endpoints from inside a session.
+          </small>
+        </div>
+
+        <button class="btn btn-primary" type="submit">Save settings</button>
+      </form>
+
+      <hr class="my-4">
+
+      <form method="POST">
+        <input type="hidden" name="nonce" value="{{ Session.nonce }}">
+        <input type="hidden" name="action" value="reset">
+        <button class="btn btn-outline-secondary" type="submit">
+          Clear dashboard overrides
+        </button>
+        <small class="form-text text-muted">
+          Reverts to environment variables, <code>config.ini</code>, or the
+          plugin defaults. Environment-controlled values are unaffected.
+        </small>
+      </form>
+    </div>
+
+    <div class="col-lg-4 mt-4 mt-lg-0">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">Player preview</h5>
+          <p class="card-text text-muted mb-2">The connection command will be:</p>
+          <pre class="bg-light border rounded p-3 mb-3"><code>ssh {{ settings.ssh_user }}@{{ settings.ssh_host }} -p {{ settings.ssh_port }}</code></pre>
+          <a class="btn btn-sm btn-outline-primary" href="{{ url_for('playground.playground_page') }}">
+            Open player page
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

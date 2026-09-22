@@ -68,8 +68,8 @@
     </h1>
     <p class="lead mb-0 slide-up" style="animation-delay: 0.1s;">
       The attack playground is a machine to work from. Ssh into it and you get a
-      throwaway Linux container of your own, on a network that reaches the
-      exercise endpoints and nothing else &mdash; somewhere to run your tools
+      throwaway container of your own, on a network that reaches the
+      challenge endpoints and nothing else &mdash; somewhere to run your tools
       without setting anything up and without touching your own machine.
     </p>
   </div>
@@ -87,10 +87,7 @@
     </button>
   </div>
   <p class="text-muted mb-4">
-    Any password will do, and any username &mdash; the playground lets everyone
-    in, because there is nothing behind the door to protect. You land in a shell
-    straight away. Leave the shell, by <code>exit</code> or by closing the
-    window, and your container is gone; ssh in again for a fresh one.
+    Any password and any username will do.
   </p>
 
   <div class="row g-4 mb-5">
@@ -152,11 +149,6 @@
     </li>
   </ul>
 
-  <p class="text-muted">
-    <i class="fas fa-book me-2" aria-hidden="true"></i>
-    How the playground is built and run is written up at
-    <a href="{{ docs_url }}" target="_blank" rel="noopener noreferrer">{{ docs_url }}</a>.
-  </p>
 </div>
 {% endblock %}
 

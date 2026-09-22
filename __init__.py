@@ -1,21 +1,20 @@
-"""The attack playground, introduced inside CTFd.
+from flask import Blueprint, redirect, render_template, request, url_for
 
-The playground is a service of its own: ssh into it and you get a throwaway
-Ubuntu container to attack from, on a network that reaches the exercise
-endpoints and nothing else. This plugin adds one page, ``/playground``, listed
-in the user menu, which says what the playground is and how to connect to it.
+from CTFd.plugins import (
+    register_admin_plugin_menu_bar,
+    register_user_page_menu_bar,
+)
+from CTFd.utils.decorators import admins_only
 
-The page is rendered from configuration alone - CTFd never talks to the
-playground - so it works whether or not the playground is up.
-
-See README.md for the settings.
-"""
-
-from flask import Blueprint, current_app, render_template
-
-from CTFd.plugins import register_user_page_menu_bar
-
-from .config import config
+from .config import (
+    SETTINGS,
+    all_settings,
+    config,
+    reset_settings,
+    set_setting,
+    setting_sources,
+    validate_settings,
+)
 
 
 def load(app):
@@ -31,15 +30,53 @@ def load(app):
 
     @playground_bp.route("/playground", methods=["GET"])
     def playground_page():
+        return render_template("playground.html", **all_settings())
+
+    @playground_bp.route("/admin/playground", methods=["GET", "POST"])
+    @admins_only
+    def admin_page():
+        error = None
+
+        if request.method == "POST":
+            action = request.form.get("action", "save")
+
+            if action == "reset":
+                reset_settings()
+                return redirect(url_for("playground.admin_page", reset="1"))
+
+            if action == "save":
+                submitted = {}
+                for name, setting in SETTINGS.items():
+                    # Environment-controlled fields are disabled in the form
+                    # and therefore absent from the submission.
+                    key = setting["config_key"]
+                    if key in request.form:
+                        submitted[name] = request.form[key]
+
+                try:
+                    submitted = validate_settings(submitted)
+                except ValueError as exc:
+                    error = str(exc)
+                else:
+                    for name, value in submitted.items():
+                        set_setting(name, value)
+                    return redirect(url_for("playground.admin_page", saved="1"))
+
+        message = None
+        if request.args.get("saved") == "1":
+            message = "Playground settings saved."
+        elif request.args.get("reset") == "1":
+            message = "Dashboard overrides cleared; deployment settings now apply."
+
         return render_template(
-            "playground.html",
-            ssh_host=current_app.config["PLAYGROUND_SSH_HOST"],
-            ssh_port=current_app.config["PLAYGROUND_SSH_PORT"],
-            ssh_user=current_app.config["PLAYGROUND_SSH_USER"],
-            gateway_host=current_app.config["PLAYGROUND_GATEWAY_HOST"],
-            docs_url=current_app.config["PLAYGROUND_DOCS_URL"],
+            "playground_admin.html",
+            settings=all_settings(),
+            sources=setting_sources(),
+            message=message,
+            error=error,
         )
 
     app.register_blueprint(playground_bp)
 
     register_user_page_menu_bar("Playground", "/playground")
+    register_admin_plugin_menu_bar("Playground", "/admin/playground")

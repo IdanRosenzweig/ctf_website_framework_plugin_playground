@@ -7,26 +7,30 @@ The page is rendered from configuration alone. CTFd never talks to the
 playground, so the page is there whether the playground is up or down, and
 nothing has to be reachable between the two hosts for this plugin to work.
 
-The playground itself is a separate project:
-<https://github.com/jonathanlotan/attack_playground>.
+The playground itself is a separate project.
 
 ## What it adds
 
 - `/playground`, listed in the user menu as "Playground": what the playground
   is, the `ssh` command to connect with (and a button to copy it), what a
   session gets, and the house rules.
+- `/admin/playground`, listed under Plugins in the admin navigation: the host,
+  port, suggested username, and in-session gateway hostname shown to players.
 
-That is the whole of it. No endpoints, no admin page, no database tables, no
-background requests.
+The plugin adds no API endpoints or background requests. Dashboard settings
+are stored in CTFd's existing configuration table, so no plugin-specific
+database migration is needed.
 
 ## Setup
 
-Install like any plugin and restart CTFd. Then point the page at your
-playground, which means telling it the address players should ssh to.
+Install like any plugin and restart CTFd. Then open **Admin > Plugins >
+Playground** and point the page at your playground, which means telling it the
+address players should ssh to.
 
-The defaults describe a playground on a host called `researchlabs` with the
-ports it ships with. If yours is elsewhere, set `PLAYGROUND_SSH_HOST` (and
-`PLAYGROUND_SSH_PORT`, if you changed `SSH_PORT` in the playground's `.env`).
+The defaults describe a playground at `researchlabs.tech` on the port it ships
+with. If yours is elsewhere, use the dashboard or set `PLAYGROUND_SSH_HOST`
+(and `PLAYGROUND_SSH_PORT`, if you changed `SSH_PORT` in the playground's
+`.env`).
 
 Note that this is the address as **players** reach it, not as CTFd reaches it:
 CTFd does not connect to the playground at all, so a name that only resolves
@@ -35,10 +39,13 @@ use.
 
 ## Options
 
-All options can be set as environment variables or in the `[extra]` section of
-`CTFd/config.ini`. Environment variables take precedence.
+All options can be set from the admin dashboard, as environment variables, or
+in the `[extra]` section of `CTFd/config.ini`. Environment variables take
+precedence over the dashboard; dashboard values take precedence over
+`config.ini` and defaults. The dashboard identifies environment-controlled
+fields and disables them.
 
-- `PLAYGROUND_SSH_HOST` (default: `researchlabs`): the host players ssh to.
+- `PLAYGROUND_SSH_HOST` (default: `researchlabs.tech`): the host players ssh to.
 - `PLAYGROUND_SSH_PORT` (default: `2222`): the port they ssh to, which is
   `SSH_PORT` in the playground's `.env`.
 - `PLAYGROUND_SSH_USER` (default: `guestuser`): the username the example
@@ -48,8 +55,6 @@ All options can be set as environment variables or in the `[extra]` section of
   inside a session, resolves to the exercise endpoints. The playground defines
   it in `config.yaml` under `docker.execution.host.extrahosts`; read the current
   one with `python3 scripts/render_config.py hostname` there.
-- `PLAYGROUND_DOCS_URL` (default: the repository above): where the page's
-  "written up at" link points.
 
 ## Keeping the page true
 
@@ -68,4 +73,6 @@ whether it still tells the truth.
 ## Removing
 
 Delete this directory, as with any plugin. The page returns 404 and the menu
-entry goes with it. The plugin keeps no tables and stores nothing.
+entry goes with it. The plugin has no tables of its own. Removing it leaves its
+namespaced settings in CTFd's configuration table; they are harmless and are
+reused if the plugin is installed again.
