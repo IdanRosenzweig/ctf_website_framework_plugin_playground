@@ -69,7 +69,7 @@
     <p class="lead mb-0 slide-up" style="animation-delay: 0.1s;">
       The attack playground is a machine to work from. Ssh into it and you get a
       throwaway container of your own, on a network that reaches the
-      challenge endpoints and nothing else &mdash; somewhere to run your tools
+      challenges endpoints and nothing else &mdash; somewhere to run your tools
       without setting anything up and without touching your own machine.
     </p>
   </div>
@@ -119,7 +119,7 @@
         <div class="pg-icon"><i class="fas fa-network-wired" aria-hidden="true"></i></div>
         <h3>A closed network</h3>
         <p>
-          From inside, <code>{{ gateway_host }}</code> is the exercise
+          From inside, <code>{{ gateway_host }}</code> is the destination for the challenges
           endpoints. That is the whole of the network: no internet, no other
           machines, and no route to anyone else's container.
         </p>
@@ -144,7 +144,7 @@
       than broken. Close a shell you are done with and try again shortly.
     </li>
     <li>
-      Attack the exercise endpoints, and nothing else. Everything outside them
+      Attack the challenges endpoints, and nothing else. Everything outside them
       is out of scope, and the network is arranged so that it stays that way.
     </li>
   </ul>
